@@ -18,4 +18,5 @@ target_include_directories(${CurrLib} PUBLIC include)
 target_link_libraries(${CurrLib}
     PUBLIC
         RingBuffer
-        Utility)
+        Utility
+        Fft)
