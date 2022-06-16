@@ -9,7 +9,7 @@
 #include "AudioFileIf.h"
 #include "ErrorDef.h"
 #include "Exception.h"
-#include "ConvolverIf.h"
+#include "Convolver.h"
 
 using std::string;
 using std::vector;
@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 
 	float** inputAudioData = nullptr;
 	float** outputAudioData = nullptr;
-	std::vector<std::unique_ptr<ConvolverIf>> convolver;
+	std::vector<std::unique_ptr<Convolver>> convolver;
 
 	string inputFilePath{};
 	string outputFilePath{};

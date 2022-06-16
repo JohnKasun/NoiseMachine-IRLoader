@@ -6,7 +6,7 @@ file(GLOB ${APP}_SOURCES *.cpp)
 file(GLOB ${APP}_HEADERS include/*.h)
 
 set(${APP}_DEPEND)
-list(APPEND ${APP}_DEPEND ${CMAKE_SOURCE_DIR}/src/Convolver/include/ConvolverIf.h)
+list(APPEND ${APP}_DEPEND ${CMAKE_SOURCE_DIR}/src/Convolver/include/Convolver.h)
 list(APPEND ${APP}_DEPEND ${CMAKE_SOURCE_DIR}/extern/AudioFileIO/include/AudioFileIf.h)
 
 target_sources(${APP} 
