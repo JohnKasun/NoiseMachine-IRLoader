@@ -1,0 +1,4 @@
+add_subdirectory(RingBuffer)
+add_subdirectory(Utility)
+add_subdirectory(AudioFileIO)
+add_subdirectory(sndlib)
