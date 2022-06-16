@@ -11,7 +11,7 @@ Convolver::~Convolver()
 	CFft::destroyInstance(mFft);
 }
 
-Error_t Convolver::init(float* ir, int lengthOfIr, int blockSize)
+Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int blockSize)
 {
 	if (!ir)
 		return Error_t::kMemError;
@@ -20,21 +20,21 @@ Error_t Convolver::init(float* ir, int lengthOfIr, int blockSize)
 
 	reset();
 
-	// Copy over Ir
-	CRingBuffer<float> irCopy(lengthOfIr);
-	irCopy.put(ir, lengthOfIr);
-
 	// Init fft
 	mFft->initInstance(blockSize, 2, CFft::kWindowHann, CFft::kNoWindow);
 	mBlockSize = mFft->getLength(CFft::kLengthData);
 	mFftSize = mFft->getLength(CFft::kLengthFft);
 	mProcessBuffer.reset(new float[mFftSize]{});
-	mDelayLine.reset(new CRingBuffer<float>(mFftSize));
-	mDelayLine->setWriteIdx(mBlockSize);
 
-	int numIrBlocks = static_cast<int>(ceil(lengthOfIr / mBlockSize));
+	int numIrBlocks = static_cast<int>(ceil(static_cast<float>(lengthOfIr) / mBlockSize));
 	for (int block = 0; block < numIrBlocks; block++) {
-
+		int irStartIndex = block * mBlockSize;
+		int irEndIndex = std::min<int>(irStartIndex + mBlockSize, lengthOfIr);
+		CVectorFloat::setZero(mProcessBuffer.get(), mFftSize);
+		CVectorFloat::copy(mProcessBuffer.get(), ir + irStartIndex, irEndIndex - irStartIndex);
+		mFft->doFft(mProcessBuffer.get(), mProcessBuffer.get());
+		CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
+		mFft->doInvFft(mProcessBuffer.get(), mProcessBuffer.get());
 	}
 	// TODO: precompute ir fft 
 	return Error_t::kNoError;
@@ -44,7 +44,6 @@ Error_t Convolver::reset()
 {
 	if (mIsInitialized) {
 		mFft->resetInstance();
-		mDelayLine.reset();
 		mBlockSize = 0;
 		mFftSize = 0;
 		mProcessBuffer.reset();

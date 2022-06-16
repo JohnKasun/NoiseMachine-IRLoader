@@ -7,13 +7,14 @@
 #include "RingBuffer.h"
 #include "ErrorDef.h"
 #include "Fft.h"
+#include "Util.h"
 
 class Convolver {
 public:
 	Convolver();
 	~Convolver();
 
-	Error_t init(float* ir, int lengthOfIr, int blockSize = 8192);
+	Error_t init(const float const* ir, const int lengthOfIr, const int blockSize = 8192);
 	Error_t reset();
 
 	Error_t process(const float* inputBuffer, float* outputBuffer, int numSamples);
@@ -26,5 +27,4 @@ private:
 
 	// TODO: add buffers for fft computations
 	std::unique_ptr<float> mProcessBuffer = nullptr;
-	std::unique_ptr<CRingBuffer<float>> mDelayLine = nullptr;
 };
