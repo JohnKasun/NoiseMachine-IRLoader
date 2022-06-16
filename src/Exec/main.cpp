@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	string inputFilePath{};
 	string outputFilePath{};
 
-	cout << "-- CombFilter Effect -- " << endl;
+	cout << "-- Convolver Effect -- " << endl;
 
 	try {
 		// Open Input File

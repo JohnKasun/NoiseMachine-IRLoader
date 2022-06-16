@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ErrorDef.h"
+#include <vector>
 
 class Convolver {
 public:
