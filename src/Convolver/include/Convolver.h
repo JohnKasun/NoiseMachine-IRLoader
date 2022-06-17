@@ -23,10 +23,15 @@ private:
 
 	int mBlockSize = 0;
 	int mFftSize = 0;
+	int mNumIrBlocks = 0;
 	bool mIsInitialized = false;
 
 	// TODO: add buffers for fft computations
 	std::unique_ptr<float> mProcessBuffer = nullptr;
+	std::unique_ptr<float> mProcessReal = nullptr;
+	std::unique_ptr<float> mProcessRealCopy = nullptr;
+	std::unique_ptr<float> mProcessImag = nullptr;
 	std::vector<std::unique_ptr<float>> mIrReal;
 	std::vector<std::unique_ptr<float>> mIrImag;
+	std::unique_ptr<CRingBuffer<float>> mTail = nullptr;
 };

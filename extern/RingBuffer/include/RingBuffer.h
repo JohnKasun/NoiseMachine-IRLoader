@@ -77,6 +77,23 @@ public:
             std::memcpy (m_ptBuff, &ptNewBuff[iNumValues2End], sizeof(T)*(iLength - iNumValues2End));
     }
 
+    void addTo(T tNewValue)
+    {
+        put(tNewValue + m_ptBuff[m_iWriteIdx]);
+    }
+
+    void addTo(const T* ptNewBuff, int iLength)
+    {
+        int iWriteIdx = m_iWriteIdx;
+        int iReadIdx = m_iReadIdx;
+        setReadIdx(m_iWriteIdx);
+        for (int i = 0; i < iLength; i++) {
+            putPostInc(getPostInc() + ptNewBuff[i]);
+        }
+        setWriteIdx(iWriteIdx);
+        setReadIdx(iReadIdx);
+    }
+
     /*! return the value at the current read index and increment the read pointer
     \return float the value from the read index
     */
@@ -134,7 +151,7 @@ public:
 
         // copy two parts: to the end of buffer and after wrap around
         int iNumValues2End = std::min(iLength, m_iBuffLength - m_iReadIdx);
-
+        
         std::memcpy (ptBuff, &m_ptBuff[m_iReadIdx], sizeof(T)*iNumValues2End);
         if ((iLength - iNumValues2End)>0)
             std::memcpy (&ptBuff[iNumValues2End], m_ptBuff, sizeof(T)*(iLength - iNumValues2End));
