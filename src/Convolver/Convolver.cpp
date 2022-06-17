@@ -26,6 +26,7 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 	mFftSize = mFft->getLength(CFft::kLengthFft);
 	mProcessBuffer.reset(new float[mFftSize]{});
 
+	// Precompute Ir fft
 	int numIrBlocks = static_cast<int>(ceil(static_cast<float>(lengthOfIr) / mBlockSize));
 	for (int block = 0; block < numIrBlocks; block++) {
 		int irStartIndex = block * mBlockSize;
@@ -34,9 +35,11 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 		CVectorFloat::copy(mProcessBuffer.get(), ir + irStartIndex, irEndIndex - irStartIndex);
 		mFft->doFft(mProcessBuffer.get(), mProcessBuffer.get());
 		CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
-		mFft->doInvFft(mProcessBuffer.get(), mProcessBuffer.get());
+
+		mIrReal.emplace_back(new float[mFftSize / 2 + 1]{});
+		mIrImag.emplace_back(new float[mFftSize / 2 + 1]{});
+		mFft->splitRealImag(mIrReal.back().get(), mIrImag.back().get(), mProcessBuffer.get());
 	}
-	// TODO: precompute ir fft 
 	return Error_t::kNoError;
 }
 
@@ -47,6 +50,8 @@ Error_t Convolver::reset()
 		mBlockSize = 0;
 		mFftSize = 0;
 		mProcessBuffer.reset();
+		mIrReal.clear();
+		mIrImag.clear();
 		mIsInitialized = false;
 	}
 	return Error_t::kNoError;

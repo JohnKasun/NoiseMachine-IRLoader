@@ -27,4 +27,6 @@ private:
 
 	// TODO: add buffers for fft computations
 	std::unique_ptr<float> mProcessBuffer = nullptr;
+	std::vector<std::unique_ptr<float>> mIrReal;
+	std::vector<std::unique_ptr<float>> mIrImag;
 };
