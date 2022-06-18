@@ -6,7 +6,7 @@ Error_t CatchUtil::compare(float* buff1, float* buff2, int numSamples, float tol
 		return Error_t::kFunctionInvalidArgsError;
 
 	for (int i = 0; i < numSamples; i++) {
-		REQUIRE(abs(buff1[i] - buff2[i] <= tolerance));
+		REQUIRE(abs(buff1[i] - buff2[i]) <= tolerance);
 	}
 	return Error_t::kNoError;
 }
@@ -28,7 +28,7 @@ Error_t CatchUtil::compare(float* buff1, std::vector<float>& buff2, int numSampl
 		return Error_t::kFunctionInvalidArgsError;
 
 	for (int i = 0; i < numSamples; i++) {
-		REQUIRE(abs(buff1[i] - buff2.at(i) <= tolerance));
+		REQUIRE(abs(buff1[i] - buff2.at(i)) <= tolerance);
 	}
 	return Error_t::kNoError;
 }
