@@ -28,7 +28,6 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 	mProcessReal.reset(new float[mFftSize / 2 + 1]{});
 	mProcessRealCopy.reset(new float[mFftSize / 2 + 1]{});
 	mProcessImag.reset(new float[mFftSize / 2 + 1]{});
-	mTail.reset(new CRingBuffer<float>(mFftSize));
 
 	// Precompute Ir fft
 	mNumIrBlocks = static_cast<int>(ceil(static_cast<float>(lengthOfIr) / mBlockSize));
@@ -44,6 +43,8 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 		mIrImag.emplace_back(new float[mFftSize / 2 + 1]{});
 		mFft->splitRealImag(mIrReal.back().get(), mIrImag.back().get(), mProcessBuffer.get());
 	}
+	mTail.reset(new CRingBuffer<float>(mNumIrBlocks * mFftSize + 2 * mBlockSize));
+	mTail->setWriteIdx(mBlockSize);
 	return Error_t::kNoError;
 }
 
@@ -68,6 +69,8 @@ Error_t Convolver::reset()
 
 Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int numSamples)
 {
+	mTail->getPostInc(outputBuffer, std::min<int>(numSamples, mBlockSize));
+	int oldWriteIdx = mTail->getWriteIdx();
 	int numInputBlocks = static_cast<int>(ceil(static_cast<float>(numSamples / mBlockSize)));
 	for (int inputBlock = 0; inputBlock < numInputBlocks; inputBlock++) {
 		int inputStartIndex = inputBlock * mBlockSize;
@@ -78,6 +81,7 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 		CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
 		mFft->splitRealImag(mProcessReal.get(), mProcessImag.get(), mProcessBuffer.get());
 		CVectorFloat::copy(mProcessRealCopy.get(), mProcessReal.get(), mFftSize / 2 + 1);
+		mTail->setWriteIdx(oldWriteIdx + inputBlock * mBlockSize);
 		for (int irBlock = 0; irBlock < mNumIrBlocks; irBlock++) {
 			for (int m = 0; m < mFftSize / 2 + 1; m++){
 				mProcessReal.get()[m] = (mProcessRealCopy.get()[m] * mIrReal.at(irBlock).get()[m] - mProcessImag.get()[m] * mIrImag.at(irBlock).get()[m]);
@@ -86,6 +90,8 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 			mFft->mergeRealImag(mProcessBuffer.get(), mProcessReal.get(), mProcessImag.get());
 			mFft->doInvFft(mProcessBuffer.get(), mProcessBuffer.get());
 			CVectorFloat::mulC_I(mProcessBuffer.get(), 1.0f / mFftSize, mFftSize);
+			mTail->add(mProcessBuffer.get(), mFftSize);
+			mTail->setWriteIdx(mTail->getWriteIdx() + mBlockSize);
 		}
 	}
 	return Error_t::kNoError;
