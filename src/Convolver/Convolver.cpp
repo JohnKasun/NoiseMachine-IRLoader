@@ -43,7 +43,6 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 		mIrImag.emplace_back(new float[mFftSize / 2 + 1]{});
 		mFft->splitRealImag(mIrReal.back().get(), mIrImag.back().get(), mProcessBuffer.get());
 	}
-
 	mLengthOfTail = mNumIrBlocks * mBlockSize;
 	mTail.reset(new float[mLengthOfTail] {});
 	mIsInitialized = true;
@@ -95,12 +94,14 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 	if (numSamples < 0)
 		return Error_t::kFunctionInvalidArgsError;
 
+	// Copy over leftover values
 	int copyLength = std::min<int>(numSamples, mLengthOfTail);
 	int remainder = copyLength - numSamples;
 	CVectorFloat::copy(outputBuffer, mTail.get(), copyLength);
 	if (remainder > 0)
 		CVectorFloat::moveInMem(mTail.get(), 0, copyLength, remainder);
 
+	// Main process block for fft
 	int numInputBlocks = static_cast<int>(ceil(static_cast<float>(numSamples) / mBlockSize));
 	for (int inputBlock = 0; inputBlock < numInputBlocks; inputBlock++) {
 		int inputStartIndex = inputBlock * mBlockSize;
@@ -120,6 +121,7 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 			mFft->doInvFft(mProcessBuffer.get(), mProcessBuffer.get());
 			CVectorFloat::mulC_I(mProcessBuffer.get(), 1.0f / mFftSize, mFftSize);
 
+			// Place values into appropriate buffers
 			int irStartIndex = inputStartIndex + irBlock * mBlockSize;
 			int irEndIndex = irStartIndex + mFftSize;
 			int amountToOutput = std::min<int>(irEndIndex, numSamples) - irStartIndex;

@@ -14,7 +14,7 @@ TEST_CASE("Trial") {
 	std::unique_ptr<float> tailBuffer;
 	Convolver conv;
 	SECTION("Delay") {
-		const int numSamples = 17;
+		const int numSamples = 16;
 		const int blockSize = 4;
 		const int lengthOfIr = 4;
 		const int delay = 2;
