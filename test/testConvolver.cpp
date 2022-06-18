@@ -36,5 +36,6 @@ TEST_CASE("Trial") {
 		tailBuffer.reset(new float[conv.getTailLength()]{});
 		conv.flushBuffer(tailBuffer.get());
 		CatchUtil::compare(inputBuffer.get(), outputBuffer.get() + delay, numSamples - delay);
+		CatchUtil::compare(inputBuffer.get() + numSamples - delay, tailBuffer.get(), delay);
 	}
 }

@@ -46,6 +46,7 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 
 	mLengthOfTail = mNumIrBlocks * mBlockSize;
 	mTail.reset(new float[mLengthOfTail] {});
+	mIsInitialized = true;
 	return Error_t::kNoError;
 }
 
@@ -121,11 +122,11 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 
 			int irStartIndex = inputStartIndex + irBlock * mBlockSize;
 			int irEndIndex = irStartIndex + mFftSize;
-			int irLength = std::min<int>(irEndIndex, numSamples) - irStartIndex;
-			int remainder = irEndIndex - numSamples;
-			CVectorFloat::add_I(outputBuffer + irStartIndex, mProcessBuffer.get(), irLength);
-			if (remainder > 0) {
-				CVectorFloat::add_I(mTail.get(), mProcessBuffer.get() + irLength, remainder);
+			int amountToOutput = std::min<int>(irEndIndex, numSamples) - irStartIndex;
+			int amountToTail = irEndIndex - numSamples;
+			CVectorFloat::add_I(outputBuffer + irStartIndex, mProcessBuffer.get(), amountToOutput);
+			if (amountToTail > 0) {
+				CVectorFloat::add_I(mTail.get(), mProcessBuffer.get() + amountToOutput, amountToTail);
 			}
 		}
 	}
