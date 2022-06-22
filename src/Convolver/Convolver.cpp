@@ -43,7 +43,7 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 		mIrImag.emplace_back(new float[mFftSize / 2 + 1]{});
 		mFft->splitRealImag(mIrReal.back().get(), mIrImag.back().get(), mProcessBuffer.get());
 	}
-	mLengthOfTail = mNumIrBlocks * mBlockSize;
+	mLengthOfTail = mNumIrBlocks * mBlockSize + mBlockSize;
 	mTail.reset(new float[mLengthOfTail] {});
 	mIsInitialized = true;
 	return Error_t::kNoError;
@@ -96,7 +96,7 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 
 	// Copy over leftover values
 	int copyLength = std::min<int>(numSamples, mLengthOfTail);
-	int remainder = copyLength - numSamples;
+	int remainder = mLengthOfTail - copyLength;
 	CVectorFloat::copy(outputBuffer, mTail.get(), copyLength);
 	if (remainder > 0)
 		CVectorFloat::moveInMem(mTail.get(), 0, copyLength, remainder);
