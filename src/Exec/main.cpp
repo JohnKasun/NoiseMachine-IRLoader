@@ -39,17 +39,21 @@ int main(int argc, char* argv[])
 	string irFilePath{};
 	string outputFilePath{};
 
+	cout << "-- Convolver Effect -- " << endl;
+
 	switch (argc) {
 	case 3:
 		irFilePath = argv[2];
 	case 2:
 		inputFilePath = argv[1];
 		break;
+	case 1:
+		std::cout << "Enter your parameters: " << std::endl;
+		break;
 	default:
-		;
+		std::cout << "Incorrect Number of arguments...";
+		return -1;
 	}
-
-	cout << "-- Convolver Effect -- " << endl;
 
 	try {
 		// Open Input File
