@@ -98,6 +98,7 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 	int copyLength = std::min<int>(numSamples, mLengthOfTail);
 	int remainder = mLengthOfTail - copyLength;
 	CVectorFloat::copy(outputBuffer, mTail.get(), copyLength);
+	CVectorFloat::setZero(mTail.get(), copyLength);
 	if (remainder > 0)
 		CVectorFloat::moveInMem(mTail.get(), 0, copyLength, remainder);
 
