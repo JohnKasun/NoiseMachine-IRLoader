@@ -91,13 +91,12 @@ TEST_CASE("Convolver") {
 	}
 	SECTION("Various Block Sizes") {
 		srand(time(NULL));
-		const int numSamples = 10;
-		const int lengthOfIr = 5;
-		const int delay = 2;
+		const int numSamples = 1000;
+		const int lengthOfIr = 100;
+		const int delay = 40;
 
 		inputBuffer.reset(new float[numSamples] {});
 		outputBuffer.reset(new float[numSamples] {});
-		groundBuffer.reset(new float[numSamples] {});
 		ir.reset(new float[lengthOfIr] {});
 
 		ir.get()[delay] = 1;
@@ -115,6 +114,7 @@ TEST_CASE("Convolver") {
 			conv.flushBuffer(tailBuffer.get());
 			CatchUtil::compare(inputBuffer.get(), outputBuffer.get() + delay, numSamples - delay);
 			CatchUtil::compare(inputBuffer.get() + numSamples - delay, tailBuffer.get(), delay);
+			CVectorFloat::setZero(outputBuffer.get(), numSamples);
 			conv.reset();
 		}
 
