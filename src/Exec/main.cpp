@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 		
 		// Check Compatibility
 		if (irFileSpec.iNumChannels != inputFileSpec.iNumChannels) {
-			throw Exception("Channels do not match...");
+			throw Exception("Number of channels do not match...");
 		}
 
 		// Load Ir File

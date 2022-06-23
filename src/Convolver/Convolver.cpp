@@ -38,14 +38,9 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 	for (int block = 0; block < mNumIrBlocks; block++) {
 		int irStartIndex = block * mBlockSize;
 		int irEndIndex = std::min<int>(irStartIndex + mBlockSize, lengthOfIr);
-		CVectorFloat::setZero(mProcessBuffer.get(), mFftSize);
-		CVectorFloat::copy(mProcessBuffer.get(), ir + irStartIndex, irEndIndex - irStartIndex);
-		mFft->doFft(mProcessBuffer.get(), mProcessBuffer.get());
-		CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
-
 		mIrReal.emplace_back(new float[mFftSize / 2 + 1]{});
 		mIrImag.emplace_back(new float[mFftSize / 2 + 1]{});
-		mFft->splitRealImag(mIrReal.back().get(), mIrImag.back().get(), mProcessBuffer.get());
+		getSpectrum(ir + irStartIndex, irEndIndex - irStartIndex, mIrReal.back().get(), mIrImag.back().get());
 	}
 	mLengthOfTail = mNumIrBlocks * mBlockSize + mBlockSize;
 	mTail.reset(new float[mLengthOfTail] {});
@@ -104,19 +99,17 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 	int remainder = mLengthOfTail - copyLength;
 	CVectorFloat::copy(outputBuffer, mTail.get(), copyLength);
 	CVectorFloat::setZero(mTail.get(), copyLength);
-	if (remainder > 0)
+	if (remainder > 0) {
+		assert(remainder <= mLengthOfTail);
 		CVectorFloat::moveInMem(mTail.get(), 0, copyLength, remainder);
+	}
 
 	// Main process block for fft
 	int numInputBlocks = static_cast<int>(ceil(static_cast<float>(numSamples) / mBlockSize));
 	for (int inputBlock = 0; inputBlock < numInputBlocks; inputBlock++) {
 		int inputStartIndex = inputBlock * mBlockSize;
 		int inputEndIndex = std::min<int>(inputStartIndex + mBlockSize, numSamples);
-		CVectorFloat::setZero(mProcessBuffer.get(), mFftSize);
-		CVectorFloat::copy(mProcessBuffer.get(), inputBuffer + inputStartIndex, inputEndIndex - inputStartIndex);
-		mFft->doFft(mProcessBuffer.get(), mProcessBuffer.get());
-		CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
-		mFft->splitRealImag(mProcessReal.get(), mProcessImag.get(), mProcessBuffer.get());
+		getSpectrum(inputBuffer + inputStartIndex, inputEndIndex - inputStartIndex, mProcessReal.get(), mProcessImag.get());
 		CVectorFloat::copy(mProcessRealCopy.get(), mProcessReal.get(), mFftSize / 2 + 1);
 		CVectorFloat::copy(mProcessImagCopy.get(), mProcessImag.get(), mFftSize / 2 + 1);
 		for (int irBlock = 0; irBlock < mNumIrBlocks; irBlock++) {
@@ -133,16 +126,29 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 			int irEndIndex = irStartIndex + mFftSize;
 			if (irStartIndex < numSamples) {
 				int amountToOutput = std::min<int>(irEndIndex, numSamples) - irStartIndex;
-				int amountToTail = irEndIndex - numSamples;
+				assert(irStartIndex + amountToOutput <= numSamples);
 				CVectorFloat::add_I(outputBuffer + irStartIndex, mProcessBuffer.get(), amountToOutput);
+				int amountToTail = irEndIndex - numSamples;
 				if (amountToTail > 0) {
+					assert(amountToTail <= mLengthOfTail);
+					assert(amountToOutput + amountToTail <= mFftSize);
 					CVectorFloat::add_I(mTail.get(), mProcessBuffer.get() + amountToOutput, amountToTail);
 				}
 			}
 			else {
+				assert(irStartIndex - numSamples + irEndIndex - irStartIndex <= mLengthOfTail);
 				CVectorFloat::add_I(mTail.get() + irStartIndex - numSamples, mProcessBuffer.get(), irEndIndex - irStartIndex);
 			}
 		}
 	}
 	return Error_t::kNoError;
+}
+
+void Convolver::getSpectrum(const float const* inputBuffer, const int numSamples, float* realSpec, float* imagSpec)
+{
+	CVectorFloat::setZero(mProcessBuffer.get(), mFftSize);
+	CVectorFloat::copy(mProcessBuffer.get(), inputBuffer, numSamples);
+	mFft->doFft(mProcessBuffer.get(), mProcessBuffer.get());
+	CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
+	mFft->splitRealImag(realSpec, imagSpec, mProcessBuffer.get());
 }

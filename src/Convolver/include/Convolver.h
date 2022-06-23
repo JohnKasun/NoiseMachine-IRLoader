@@ -37,4 +37,6 @@ private:
 	std::unique_ptr<float> mTail = nullptr;
 	std::vector<std::unique_ptr<float>> mIrReal;
 	std::vector<std::unique_ptr<float>> mIrImag;
+
+	void getSpectrum(const float const* inputBuffer, const int numSamples, float* realSpec, float* imagSpec);
 };
