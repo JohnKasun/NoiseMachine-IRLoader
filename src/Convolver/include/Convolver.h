@@ -33,6 +33,7 @@ private:
 	std::unique_ptr<float> mProcessReal = nullptr;
 	std::unique_ptr<float> mProcessRealCopy = nullptr;
 	std::unique_ptr<float> mProcessImag = nullptr;
+	std::unique_ptr<float> mProcessImagCopy = nullptr;
 	std::unique_ptr<float> mTail = nullptr;
 	std::vector<std::unique_ptr<float>> mIrReal;
 	std::vector<std::unique_ptr<float>> mIrImag;

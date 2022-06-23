@@ -15,19 +15,23 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 {
 	if (!ir)
 		return Error_t::kMemError;
-	if (lengthOfIr < 0 || blockSize < 0)
+	if (lengthOfIr < 0 || blockSize <= 0)
 		return Error_t::kFunctionInvalidArgsError;
 
 	reset();
 
 	// Init fft
-	mFft->initInstance(blockSize, 2, CFft::kWindowHann, CFft::kNoWindow);
+	Error_t err = mFft->initInstance(blockSize, 2, CFft::kWindowHann, CFft::kNoWindow);
+	if (err != Error_t::kNoError)
+		return err;
+
 	mBlockSize = mFft->getLength(CFft::kLengthData);
 	mFftSize = mFft->getLength(CFft::kLengthFft);
 	mProcessBuffer.reset(new float[mFftSize]{});
 	mProcessReal.reset(new float[mFftSize / 2 + 1]{});
 	mProcessRealCopy.reset(new float[mFftSize / 2 + 1]{});
 	mProcessImag.reset(new float[mFftSize / 2 + 1]{});
+	mProcessImagCopy.reset(new float[mFftSize / 2 + 1]{});
 
 	// Precompute Ir fft
 	mNumIrBlocks = static_cast<int>(ceil(static_cast<float>(lengthOfIr) / mBlockSize));
@@ -61,6 +65,7 @@ Error_t Convolver::reset()
 		mProcessReal.reset();
 		mProcessRealCopy.reset();
 		mProcessImag.reset();
+		mProcessImagCopy.reset();
 		mIrReal.clear();
 		mIrImag.clear();
 		mTail.reset();
@@ -113,10 +118,11 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 		CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
 		mFft->splitRealImag(mProcessReal.get(), mProcessImag.get(), mProcessBuffer.get());
 		CVectorFloat::copy(mProcessRealCopy.get(), mProcessReal.get(), mFftSize / 2 + 1);
+		CVectorFloat::copy(mProcessImagCopy.get(), mProcessImag.get(), mFftSize / 2 + 1);
 		for (int irBlock = 0; irBlock < mNumIrBlocks; irBlock++) {
 			for (int m = 0; m < mFftSize / 2 + 1; m++){
-				mProcessReal.get()[m] = (mProcessRealCopy.get()[m] * mIrReal.at(irBlock).get()[m] - mProcessImag.get()[m] * mIrImag.at(irBlock).get()[m]);
-				mProcessImag.get()[m] = (mProcessRealCopy.get()[m] * mIrImag.at(irBlock).get()[m] + mProcessImag.get()[m] * mIrReal.at(irBlock).get()[m]);
+				mProcessReal.get()[m] = (mProcessRealCopy.get()[m] * mIrReal.at(irBlock).get()[m] - mProcessImagCopy.get()[m] * mIrImag.at(irBlock).get()[m]);
+				mProcessImag.get()[m] = (mProcessRealCopy.get()[m] * mIrImag.at(irBlock).get()[m] + mProcessImagCopy.get()[m] * mIrReal.at(irBlock).get()[m]);
 			}
 			mFft->mergeRealImag(mProcessBuffer.get(), mProcessReal.get(), mProcessImag.get());
 			mFft->doInvFft(mProcessBuffer.get(), mProcessBuffer.get());
@@ -125,11 +131,16 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 			// Place values into appropriate buffers
 			int irStartIndex = inputStartIndex + irBlock * mBlockSize;
 			int irEndIndex = irStartIndex + mFftSize;
-			int amountToOutput = std::min<int>(irEndIndex, numSamples) - irStartIndex;
-			int amountToTail = irEndIndex - numSamples;
-			CVectorFloat::add_I(outputBuffer + irStartIndex, mProcessBuffer.get(), amountToOutput);
-			if (amountToTail > 0) {
-				CVectorFloat::add_I(mTail.get(), mProcessBuffer.get() + amountToOutput, amountToTail);
+			if (irStartIndex < numSamples) {
+				int amountToOutput = std::min<int>(irEndIndex, numSamples) - irStartIndex;
+				int amountToTail = irEndIndex - numSamples;
+				CVectorFloat::add_I(outputBuffer + irStartIndex, mProcessBuffer.get(), amountToOutput);
+				if (amountToTail > 0) {
+					CVectorFloat::add_I(mTail.get(), mProcessBuffer.get() + amountToOutput, amountToTail);
+				}
+			}
+			else {
+				CVectorFloat::add_I(mTail.get() + irStartIndex - numSamples, mProcessBuffer.get(), irEndIndex - irStartIndex);
 			}
 		}
 	}
