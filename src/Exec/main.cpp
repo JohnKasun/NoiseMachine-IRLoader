@@ -33,6 +33,7 @@ int main(int argc, char* argv[])
 	float** inputAudioData = nullptr;
 	float** irAudioData = nullptr;
 	float** outputAudioData = nullptr;
+	float** tailAudioData = nullptr;
 	std::vector<std::unique_ptr<Convolver>> convolver;
 
 	string inputFilePath{};
@@ -133,9 +134,11 @@ int main(int argc, char* argv[])
 		// Allocate memory
 		inputAudioData = new float* [inputFileSpec.iNumChannels]{};
 		outputAudioData = new float* [inputFileSpec.iNumChannels]{};
+		tailAudioData = new float* [inputFileSpec.iNumChannels]{};
 		for (int c = 0; c < inputFileSpec.iNumChannels; c++) {
 			inputAudioData[c] = new float[fileBlockSize] {};
 			outputAudioData[c] = new float[fileBlockSize] {};
+			tailAudioData[c] = new float[convolver[c]->getTailLength()]{};
 		}
 
 		// Process
@@ -152,6 +155,12 @@ int main(int argc, char* argv[])
 			};
 		}
 
+		// Process tail
+		for (int c = 0; c < inputFileSpec.iNumChannels; c++) {
+			convolver[c]->flushBuffer(tailAudioData[c]);
+		}
+		audioFileOut->writeData(tailAudioData, convolver[0]->getTailLength());
+
 		cout << endl;
 		cout << std::setw(labelFormat) << "Done processing..." << endl;
 		cout << "\n-- Convolver Effect -- " << endl;
@@ -161,6 +170,7 @@ int main(int argc, char* argv[])
 		for (int c = 0; c < inputFileSpec.iNumChannels; c++) {
 			delete[] inputAudioData[c];
 			delete[] outputAudioData[c];
+			delete[] tailAudioData[c];
 		}
 		for (int c = 0; c < irFileSpec.iNumChannels; c++) {
 			delete[] irAudioData[c];
@@ -168,6 +178,7 @@ int main(int argc, char* argv[])
 		delete[] irAudioData;
 		delete[] inputAudioData;
 		delete[] outputAudioData;
+		delete[] tailAudioData;
 
 		CAudioFileIf::destroy(audioFileIn);
 		CAudioFileIf::destroy(irFileIn);
@@ -203,12 +214,19 @@ int main(int argc, char* argv[])
 			}
 			delete[] outputAudioData;
 		}
+		if (tailAudioData) {
+			for (int c = 0; c < inputFileSpec.iNumChannels; c++) {
+				delete[] tailAudioData[c];
+			}
+			delete[] tailAudioData;
+		}
 		audioFileIn = nullptr;
 		irFileIn = nullptr;
 		audioFileOut = nullptr;
 		inputAudioData = nullptr;
 		irAudioData = nullptr;
 		outputAudioData = nullptr;
+		tailAudioData = nullptr;
 
 		cout << "\n--------------------------" << endl;
 		cout << ex.what() << endl;
