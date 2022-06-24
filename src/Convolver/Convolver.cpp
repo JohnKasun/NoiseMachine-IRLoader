@@ -25,12 +25,13 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 	if (err != Error_t::kNoError)
 		return err;
 
+	// Allocate buffers
 	mBlockSize = mFft->getLength(CFft::kLengthData);
 	mFftSize = mFft->getLength(CFft::kLengthFft);
 	mProcessBuffer.reset(new float[mFftSize]{});
 	mProcessReal.reset(new float[mFftSize / 2 + 1]{});
-	mProcessRealCopy.reset(new float[mFftSize / 2 + 1]{});
 	mProcessImag.reset(new float[mFftSize / 2 + 1]{});
+	mProcessRealCopy.reset(new float[mFftSize / 2 + 1]{});
 	mProcessImagCopy.reset(new float[mFftSize / 2 + 1]{});
 
 	// Precompute Ir fft
@@ -42,6 +43,8 @@ Error_t Convolver::init(const float const* ir, const int lengthOfIr, const int b
 		mIrImag.emplace_back(new float[mFftSize / 2 + 1]{});
 		getSpectrum(ir + irStartIndex, irEndIndex - irStartIndex, mIrReal.back().get(), mIrImag.back().get());
 	}
+
+	// Allocate tail buffer
 	mLengthOfTail = mNumIrBlocks * mBlockSize + mBlockSize;
 	mTail.reset(new float[mLengthOfTail] {});
 	mIsInitialized = true;
@@ -136,6 +139,7 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 				}
 			}
 			else {
+				// places all values into tail
 				assert(irStartIndex - numSamples + irEndIndex - irStartIndex <= mLengthOfTail);
 				CVectorFloat::add_I(mTail.get() + irStartIndex - numSamples, mProcessBuffer.get(), irEndIndex - irStartIndex);
 			}
@@ -146,8 +150,11 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 
 void Convolver::getSpectrum(const float const* inputBuffer, const int numSamples, float* realSpec, float* imagSpec)
 {
+	// Zero pad
 	CVectorFloat::setZero(mProcessBuffer.get(), mFftSize);
 	CVectorFloat::copy(mProcessBuffer.get(), inputBuffer, numSamples);
+
+	
 	mFft->doFft(mProcessBuffer.get(), mProcessBuffer.get());
 	CVectorFloat::mulC_I(mProcessBuffer.get(), mFftSize, mFftSize);
 	mFft->splitRealImag(realSpec, imagSpec, mProcessBuffer.get());

@@ -44,9 +44,14 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    void requestLoadIr(juce::File irFile);
+
 private:
 
-    juce::AudioProcessorValueTreeState mParameters;
+    juce::File mIrFile;
+    std::vector<std::unique_ptr<float>> mIrBuffer;
+
+    void loadIr();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)

@@ -10,11 +10,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-    ),
-    mParameters(*this, nullptr, juce::Identifier("Parameters"),
-        {
-            std::make_unique<juce::AudioParameterFloat>("none", "None", 0, 1, 0)
-        })
+    )
 {
 }
 
@@ -90,12 +86,12 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-
+    loadIr();
 }
 
 void AudioPluginAudioProcessor::releaseResources()
 {
-
+    mIrBuffer.clear();
 }
 
 bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -139,25 +135,29 @@ bool AudioPluginAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor()
 {
-    return new AudioPluginAudioProcessorEditor(*this, mParameters);
+    return new AudioPluginAudioProcessorEditor(*this);
 }
 
 //==============================================================================
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto state = mParameters.copyState();
-    std::unique_ptr<juce::XmlElement> xml(state.createXml());
-    copyXmlToBinary(*xml, destData);
+
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-    if (xmlState.get() != nullptr) {
-        if (xmlState->hasTagName(mParameters.state.getType())) {
-            mParameters.replaceState(juce::ValueTree::fromXml(*xmlState));
-        }
-    }
+
+}
+
+void AudioPluginAudioProcessor::requestLoadIr(juce::File irFile)
+{
+    mIrFile = irFile;
+    // stop audio somehow
+}
+
+void AudioPluginAudioProcessor::loadIr()
+{
+    // load into buffer
 }
 
 //==============================================================================

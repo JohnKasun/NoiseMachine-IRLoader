@@ -9,10 +9,11 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor
 public:
 
     enum Dimen_t {
-
+        buttonWidth = 200,
+        buttonHeight = 100
     };
 
-    explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor&, juce::AudioProcessorValueTreeState&);
+    explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor&);
     ~AudioPluginAudioProcessorEditor() override;
 
     //==============================================================================
@@ -22,9 +23,14 @@ public:
 private:
 
     MyLookAndFeel mMyLookAndFeel;
-    juce::AudioProcessorValueTreeState& mValueTreeState;
-
     AudioPluginAudioProcessor& processorRef;
+
+    juce::TextButton mLoadButton;
+
+    juce::File mIr;
+    std::unique_ptr<juce::FileChooser> mIrLoaderWindow;
+
+    void openIrLoader();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessorEditor)
 };
