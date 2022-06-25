@@ -39,7 +39,12 @@ void AudioPluginAudioProcessorEditor::openIrLoader()
         [this](const juce::FileChooser& chooser) {
             juce::File file = chooser.getResult();
             if (file.exists()) {
-                processorRef.requestLoadIr(file);
+                if (processorRef.loadIr(file)) {
+                    juce::Logger::outputDebugString("Ir Loaded");
+                }
+                else {
+                    juce::Logger::outputDebugString("Ir Failed to Load");
+                }
             }
         });
 }

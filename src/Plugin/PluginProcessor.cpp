@@ -12,6 +12,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
     )
 {
+    mFormatManager.registerBasicFormats();
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -86,12 +87,17 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    loadIr();
+    mTempOutputBuffer.reset(new float[samplesPerBlock * 2]{});
+    if (mIrBuffer) {
+        if (mIrBuffer->getNumChannels() == getTotalNumInputChannels()) {
+            initConvolver();
+        }
+    }
 }
 
 void AudioPluginAudioProcessor::releaseResources()
 {
-    mIrBuffer.clear();
+    mConvolver.clear();
 }
 
 bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -125,6 +131,13 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     juce::ScopedNoDenormals noDenormals;
 
+    if (!mConvolver.empty()) {
+        for (int c = 0; c < getTotalNumInputChannels(); c++) {
+            mConvolver[c]->process(buffer.getReadPointer(c), mTempOutputBuffer.get(), buffer.getNumSamples());
+            buffer.addFrom(c, 0, mTempOutputBuffer.get(), buffer.getNumSamples());
+        }
+    }
+
 }
 
 //==============================================================================
@@ -146,18 +159,37 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 
 void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-
+    
 }
 
-void AudioPluginAudioProcessor::requestLoadIr(juce::File irFile)
+bool AudioPluginAudioProcessor::loadIr(juce::File irFile)
 {
-    mIrFile = irFile;
-    // stop audio somehow
+    auto* reader = mFormatManager.createReaderFor(irFile);
+    if (reader != nullptr) {
+        if (reader->numChannels != getTotalNumInputChannels()) {
+            delete reader;
+            return false;
+        }
+
+        suspendProcessing(true);
+        mIrBuffer.reset(new juce::AudioSampleBuffer(reader->numChannels, reader->lengthInSamples));
+        reader->read(mIrBuffer.get(), 0, reader->lengthInSamples, 0, true, true);
+        releaseResources();
+        initConvolver();
+        suspendProcessing(false);
+        delete reader;
+        return true;
+    }
+    return false;
 }
 
-void AudioPluginAudioProcessor::loadIr()
+void AudioPluginAudioProcessor::initConvolver()
 {
-    // load into buffer
+    mConvolver.clear();
+    for (int c = 0; c < mIrBuffer->getNumChannels(); c++) {
+        mConvolver.emplace_back(new Convolver());
+        mConvolver[c]->init(mIrBuffer->getWritePointer(c), mIrBuffer->getNumSamples());
+    }
 }
 
 //==============================================================================

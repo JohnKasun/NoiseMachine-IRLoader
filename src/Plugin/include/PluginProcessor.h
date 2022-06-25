@@ -1,8 +1,10 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_formats/juce_audio_formats.h>
 
 #include "ErrorDef.h"
+#include "Convolver.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor : public juce::AudioProcessor
@@ -44,14 +46,17 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    void requestLoadIr(juce::File irFile);
+
+    bool loadIr(juce::File irFile);
 
 private:
 
-    juce::File mIrFile;
-    std::vector<std::unique_ptr<float>> mIrBuffer;
+    juce::AudioFormatManager mFormatManager;
+    std::unique_ptr<juce::AudioSampleBuffer> mIrBuffer;
+    std::vector<std::unique_ptr<Convolver>> mConvolver;
+    std::unique_ptr<float> mTempOutputBuffer;
 
-    void loadIr();
+    void initConvolver();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
