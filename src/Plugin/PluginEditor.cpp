@@ -81,7 +81,7 @@ void AudioPluginAudioProcessorEditor::updateIrState()
     }
     else {
         mLoadButton.setButtonText("Load Ir");
-        mLoadButton.setColour(juce::TextButton::buttonColourId, juce::Colours::black);
+        mLoadButton.setColour(juce::TextButton::buttonColourId, getLookAndFeel().findColour(juce::TextButton::buttonColourId));
         mLoadButton.setEnabled(true);
         mClearButton.setEnabled(false);
     }
