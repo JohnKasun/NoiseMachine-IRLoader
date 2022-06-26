@@ -10,6 +10,12 @@
 class AudioPluginAudioProcessor : public juce::AudioProcessor
 {
 public:
+
+    enum IrState {
+        irLoaded,
+        irEmpty
+    };
+
     //==============================================================================
     AudioPluginAudioProcessor();
     ~AudioPluginAudioProcessor() override;
@@ -46,11 +52,13 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-
-    bool loadIr(juce::File irFile);
+    juce::String loadIr(juce::File irFile);
+    void clearIr();
+    IrState getIrState() const;
 
 private:
 
+    IrState mIrState = irEmpty;
     juce::AudioFormatManager mFormatManager;
     std::unique_ptr<juce::AudioSampleBuffer> mIrBuffer;
     std::vector<std::unique_ptr<Convolver>> mConvolver;

@@ -88,16 +88,13 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     mTempOutputBuffer.reset(new float[samplesPerBlock * 2]{});
-    if (mIrBuffer) {
-        if (mIrBuffer->getNumChannels() == getTotalNumInputChannels()) {
-            initConvolver();
-        }
-    }
 }
 
 void AudioPluginAudioProcessor::releaseResources()
 {
     mConvolver.clear();
+    mIrBuffer.reset();
+    mIrState = irEmpty;
 }
 
 bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -162,25 +159,38 @@ void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeIn
     
 }
 
-bool AudioPluginAudioProcessor::loadIr(juce::File irFile)
+juce::String AudioPluginAudioProcessor::loadIr(juce::File irFile)
 {
     auto* reader = mFormatManager.createReaderFor(irFile);
     if (reader != nullptr) {
         if (reader->numChannels != getTotalNumInputChannels()) {
             delete reader;
-            return false;
+            return juce::String("Channels Mismatch");
         }
 
         suspendProcessing(true);
+        releaseResources();
         mIrBuffer.reset(new juce::AudioSampleBuffer(reader->numChannels, reader->lengthInSamples));
         reader->read(mIrBuffer.get(), 0, reader->lengthInSamples, 0, true, true);
-        releaseResources();
-        initConvolver();
+        initConvolver(); 
+        mIrState = irLoaded;
         suspendProcessing(false);
         delete reader;
-        return true;
+        return juce::String("Success");
     }
-    return false;
+    return juce::String("File can't be opened");
+}
+
+void AudioPluginAudioProcessor::clearIr()
+{
+    suspendProcessing(true);
+    releaseResources();
+    suspendProcessing(false);
+}
+
+AudioPluginAudioProcessor::IrState AudioPluginAudioProcessor::getIrState() const
+{
+    return mIrState;
 }
 
 void AudioPluginAudioProcessor::initConvolver()
