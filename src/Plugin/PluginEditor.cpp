@@ -20,7 +20,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     mClearButton.setButtonText("Clear");
     
     startTimer(50);
-    updateIrState();
+    processorRef.setAudioProcessErrorCallback([this](juce::String message) { showErrorWindow(message); });
     setSize(buttonWidth, buttonHeight * 1.5);
 }
 
@@ -59,39 +59,30 @@ void AudioPluginAudioProcessorEditor::openIrLoader()
         [this](const juce::FileChooser& chooser) {
             juce::File file = chooser.getResult();
             if (file.exists()) {
-                juce::String status = processorRef.loadIr(file);
-                if (status != "Success") {
-                    showErrorWindow(status);
-                }
-                updateIrState();
+                processorRef.loadIr(file);
             }
         });
 }
 
 void AudioPluginAudioProcessorEditor::clearIr()
 {
-    if (processorRef.getIrState() == AudioPluginAudioProcessor::irLoaded) {
+    if (processorRef.isIrLoaded()) {
         processorRef.clearIr();
-        updateIrState();
     }
 }
 
 void AudioPluginAudioProcessorEditor::updateIrState()
 {
-    switch (processorRef.getIrState()) {
-    case AudioPluginAudioProcessor::irLoaded:
+    if (processorRef.isIrLoaded()) {
         mLoadButton.setButtonText("Ir Loaded!");
         mLoadButton.setColour(juce::TextButton::buttonColourId, juce::Colours::green);
         mLoadButton.setEnabled(false);
         mClearButton.setEnabled(true);
-        break;
-    case AudioPluginAudioProcessor::irEmpty:
+    }
+    else {
         mLoadButton.setButtonText("Load Ir");
         mLoadButton.setColour(juce::TextButton::buttonColourId, juce::Colours::black);
         mLoadButton.setEnabled(true);
         mClearButton.setEnabled(false);
-        break;
-    default:
-        ;
     }
 }

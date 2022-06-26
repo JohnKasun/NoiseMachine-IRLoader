@@ -28,9 +28,7 @@ private:
     juce::TextButton mLoadButton;
     juce::TextButton mClearButton;
 
-    juce::File mIr;
     std::unique_ptr<juce::FileChooser> mIrLoaderWindow;
-
     void timerCallback() override;
     void showErrorWindow(juce::String errorMessage);
     void openIrLoader();
