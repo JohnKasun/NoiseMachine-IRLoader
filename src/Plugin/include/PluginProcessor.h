@@ -57,8 +57,8 @@ private:
 
     std::function<void(juce::String)> onAudioProcessorError;
     juce::AudioFormatManager mFormatManager;
-    std::unique_ptr<juce::AudioSampleBuffer> mIrBuffer;
-    std::vector<std::unique_ptr<Convolver>> mConvolver;
+    std::array<Convolver, 2> mConvolver;
+    bool mIrLoaded = false;
     std::unique_ptr<float> mTempOutputBuffer;
 
     //==============================================================================

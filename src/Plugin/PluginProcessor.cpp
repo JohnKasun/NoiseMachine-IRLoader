@@ -72,14 +72,12 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
     auto inputBuffer = getBusBuffer(buffer, true, 0);
 
-    if (!mConvolver.empty()) {
-        for (int c = 0; c < inputBuffer.getNumChannels(); c++) {
-            mConvolver[c]->process(buffer.getReadPointer(c), mTempOutputBuffer.get(), buffer.getNumSamples());
-            buffer.addFrom(c, 0, mTempOutputBuffer.get(), buffer.getNumSamples());
-        }
-        for (int c = getTotalNumInputChannels(); c < getTotalNumOutputChannels(); c++) {
-            buffer.copyFrom(c, 0, buffer.getReadPointer(0), buffer.getNumSamples());
-        }
+    for (int c = 0; c < inputBuffer.getNumChannels(); c++) {
+        mConvolver[c].process(buffer.getReadPointer(c), mTempOutputBuffer.get(), buffer.getNumSamples());
+        buffer.addFrom(c, 0, mTempOutputBuffer.get(), buffer.getNumSamples());
+    }
+    for (int c = getTotalNumInputChannels(); c < getTotalNumOutputChannels(); c++) {
+        buffer.copyFrom(c, 0, buffer.getReadPointer(0), buffer.getNumSamples());
     }
 
 }
@@ -111,15 +109,22 @@ void AudioPluginAudioProcessor::loadIr(juce::File irFile)
     auto* reader = mFormatManager.createReaderFor(irFile);
     if (reader != nullptr) {
         suspendProcessing(true);
-        mIrBuffer.reset(new juce::AudioSampleBuffer(2, reader->lengthInSamples));
-        reader->read(mIrBuffer.get(), 0, reader->lengthInSamples, 0, true, true);
-        if (reader->numChannels < 2) {
-            mIrBuffer->copyFrom(1, 0, mIrBuffer->getReadPointer(0), mIrBuffer->getNumSamples());
-        }
-        mConvolver.clear();
-        for (int c = 0; c < mIrBuffer->getNumChannels(); c++) {
-            mConvolver.emplace_back(new Convolver());
-            mConvolver[c]->init(mIrBuffer->getWritePointer(c), mIrBuffer->getNumSamples());
+        auto irBuffer = juce::AudioSampleBuffer(reader->numChannels, reader->lengthInSamples);
+        reader->read(&irBuffer, 0, reader->lengthInSamples, 0, true, true);
+        switch (irBuffer.getNumChannels()) {
+        case 1:
+            mConvolver.at(0).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
+            mConvolver.at(1).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
+            mIrLoaded = true;
+            break;
+        case 2:
+            mConvolver.at(0).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
+            mConvolver.at(1).init(irBuffer.getWritePointer(1), irBuffer.getNumSamples());
+            mIrLoaded = true;
+            break;
+        default:
+            onAudioProcessorError("Ir must be stereo or mono...");
+            mIrLoaded = false;
         }
         suspendProcessing(false);
         delete reader;
@@ -132,17 +137,16 @@ void AudioPluginAudioProcessor::loadIr(juce::File irFile)
 void AudioPluginAudioProcessor::clearIr()
 {
     suspendProcessing(true);
-    mIrBuffer.reset();
-    mConvolver.clear();
+    for (int c = 0; c < mConvolver.size(); c++) {
+        mConvolver.at(c).reset();
+    }
+    mIrLoaded = false;
     suspendProcessing(false);
 }
 
 bool AudioPluginAudioProcessor::isIrLoaded() const
 {
-    if (mIrBuffer) {
-        return true;
-    }
-    return false;
+    return mIrLoaded;
 }
 
 void AudioPluginAudioProcessor::setAudioProcessErrorCallback(std::function<void(juce::String)> callback)
