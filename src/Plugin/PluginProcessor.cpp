@@ -17,11 +17,7 @@ AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 }
 
 //==============================================================================
-const juce::String AudioPluginAudioProcessor::getName() const
-{
-    return JucePlugin_Name;
-}
-
+const juce::String AudioPluginAudioProcessor::getName() const { return JucePlugin_Name;}
 bool AudioPluginAudioProcessor::acceptsMidi() const{return false;}
 bool AudioPluginAudioProcessor::producesMidi() const{return false;}
 bool AudioPluginAudioProcessor::isMidiEffect() const { return false;}
@@ -29,26 +25,29 @@ int AudioPluginAudioProcessor::getNumPrograms() { return 1; }
 int AudioPluginAudioProcessor::getCurrentProgram() { return 0; }
 void AudioPluginAudioProcessor::setCurrentProgram(int index) { juce::ignoreUnused(index); }
 const juce::String AudioPluginAudioProcessor::getProgramName(int index) { juce::ignoreUnused(index); return {}; }
+bool AudioPluginAudioProcessor::hasEditor() const { return true; }
+juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor() { return new AudioPluginAudioProcessorEditor(*this); }
+void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String& newName) { juce::ignoreUnused(index, newName); }
+//==============================================================================
 
 double AudioPluginAudioProcessor::getTailLengthSeconds() const
 {
-    return 0.0;
-}
-
-void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String& newName)
-{
-    juce::ignoreUnused(index, newName);
+    return mConvolver.at(0).getTailLength() / mSampleRate;
 }
 
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    mTempOutputBuffer.reset(new float[samplesPerBlock * 2]{});
+    mSampleRate = sampleRate;
+    mTempOutputBufferSize = samplesPerBlock * 2;
+    mTempOutputBuffer.reset(new float[mTempOutputBufferSize]{});
 }
 
 void AudioPluginAudioProcessor::releaseResources()
 {
-
+    mSampleRate = 44100.0;
+    mTempOutputBufferSize = 0.0f;
+    mTempOutputBuffer.reset();
 }
 
 bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -56,9 +55,6 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layout
 
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
         && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
 
     return true;
@@ -81,18 +77,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     }
 
 }
-
-//==============================================================================
-bool AudioPluginAudioProcessor::hasEditor() const
-{
-    return true; // (change this to false if you choose to not supply an editor)
-}
-
-juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor()
-{
-    return new AudioPluginAudioProcessorEditor(*this);
-}
-
 //==============================================================================
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
@@ -141,6 +125,7 @@ void AudioPluginAudioProcessor::clearIr()
         mConvolver.at(c).reset();
     }
     mIrLoaded = false;
+    CVectorFloat::setZero(mTempOutputBuffer.get(), mTempOutputBufferSize);
     suspendProcessing(false);
 }
 

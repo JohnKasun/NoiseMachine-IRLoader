@@ -59,7 +59,10 @@ private:
     juce::AudioFormatManager mFormatManager;
     std::array<Convolver, 2> mConvolver;
     bool mIrLoaded = false;
+    double mSampleRate = 44100.0;
     std::unique_ptr<float> mTempOutputBuffer;
+    int mTempOutputBufferSize = 0.0f;
+
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
