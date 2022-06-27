@@ -112,19 +112,19 @@ Error_t Convolver::process(const float* inputBuffer, float* outputBuffer, int nu
 	for (int inputBlock = 0; inputBlock < numInputBlocks; inputBlock++) {
 		int inputStartIndex = inputBlock * mBlockSize;
 		int inputEndIndex = std::min<int>(inputStartIndex + mBlockSize, numSamples);
-		getSpectrum(inputBuffer + inputStartIndex, inputEndIndex - inputStartIndex, mProcessRealCopy.get(), mProcessImagCopy.get());
+		getSpectrum(inputBuffer + inputStartIndex, inputEndIndex - inputStartIndex, mProcessReal.get(), mProcessImag.get());
 		for (int irBlock = 0; irBlock < mNumIrBlocks; irBlock++) {
 			for (int m = 0; m < mFftSize / 2 + 1; m++){
-				const float inputRealValue = mProcessRealCopy.get()[m];
-				const float inputImagValue = mProcessImagCopy.get()[m];
+				const float inputRealValue = mProcessReal.get()[m];
+				const float inputImagValue = mProcessImag.get()[m];
 				const float irRealValue = mIrReal.at(irBlock).get()[m];
 				const float irImagValue = mIrImag.at(irBlock).get()[m];
 				const float resultRealValue = (inputRealValue * irRealValue - inputImagValue * irImagValue);
 				const float resultImagValue = (inputRealValue * irImagValue + inputImagValue * irRealValue);
-				mProcessReal.get()[m] = resultRealValue;
-				mProcessImag.get()[m] = resultImagValue;
+				mProcessRealCopy.get()[m] = resultRealValue;
+				mProcessImagCopy.get()[m] = resultImagValue;
 			}
-			mFft->mergeRealImag(mProcessBuffer.get(), mProcessReal.get(), mProcessImag.get());
+			mFft->mergeRealImag(mProcessBuffer.get(), mProcessRealCopy.get(), mProcessImagCopy.get());
 			mFft->doInvFft(mProcessBuffer.get(), mProcessBuffer.get());
 			CVectorFloat::mulC_I(mProcessBuffer.get(), 1.0f / mFftSize, mFftSize);
 
