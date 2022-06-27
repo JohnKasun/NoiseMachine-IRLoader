@@ -4,12 +4,8 @@
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     : AudioProcessor(BusesProperties()
-#if ! JucePlugin_IsMidiEffect
-#if ! JucePlugin_IsSynth
         .withInput("Input", juce::AudioChannelSet::stereo(), true)
-#endif
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)
-#endif
     )
 {
     mFormatManager.registerBasicFormats();
@@ -26,58 +22,17 @@ const juce::String AudioPluginAudioProcessor::getName() const
     return JucePlugin_Name;
 }
 
-bool AudioPluginAudioProcessor::acceptsMidi() const
-{
-#if JucePlugin_WantsMidiInput
-    return true;
-#else
-    return false;
-#endif
-}
-
-bool AudioPluginAudioProcessor::producesMidi() const
-{
-#if JucePlugin_ProducesMidiOutput
-    return true;
-#else
-    return false;
-#endif
-}
-
-bool AudioPluginAudioProcessor::isMidiEffect() const
-{
-#if JucePlugin_IsMidiEffect
-    return true;
-#else
-    return false;
-#endif
-}
+bool AudioPluginAudioProcessor::acceptsMidi() const{return false;}
+bool AudioPluginAudioProcessor::producesMidi() const{return false;}
+bool AudioPluginAudioProcessor::isMidiEffect() const { return false;}
+int AudioPluginAudioProcessor::getNumPrograms() { return 1; }
+int AudioPluginAudioProcessor::getCurrentProgram() { return 0; }
+void AudioPluginAudioProcessor::setCurrentProgram(int index) { juce::ignoreUnused(index); }
+const juce::String AudioPluginAudioProcessor::getProgramName(int index) { juce::ignoreUnused(index); return {}; }
 
 double AudioPluginAudioProcessor::getTailLengthSeconds() const
 {
     return 0.0;
-}
-
-int AudioPluginAudioProcessor::getNumPrograms()
-{
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
-}
-
-int AudioPluginAudioProcessor::getCurrentProgram()
-{
-    return 0;
-}
-
-void AudioPluginAudioProcessor::setCurrentProgram(int index)
-{
-    juce::ignoreUnused(index);
-}
-
-const juce::String AudioPluginAudioProcessor::getProgramName(int index)
-{
-    juce::ignoreUnused(index);
-    return {};
 }
 
 void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String& newName)
@@ -89,17 +44,6 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     mTempOutputBuffer.reset(new float[samplesPerBlock * 2]{});
-    if (mIrBuffer) {
-        if (mIrBuffer->getNumChannels() != getTotalNumInputChannels()) {
-            onAudioProcessorError("Channel Mismatch");
-            suspendProcessing(true);
-        }
-        else {
-            if (isSuspended()) {
-                suspendProcessing(false);
-            }
-        }
-    }
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -109,26 +53,15 @@ void AudioPluginAudioProcessor::releaseResources()
 
 bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-#if JucePlugin_IsMidiEffect
-    juce::ignoreUnused(layouts);
-    return true;
-#else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
+
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
         && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
-    // This checks if the input layout matches the output layout
-#if ! JucePlugin_IsSynth
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
-#endif
 
     return true;
-#endif
 }
 
 void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
@@ -137,11 +70,15 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::ignoreUnused(midiMessages);
 
     juce::ScopedNoDenormals noDenormals;
+    auto inputBuffer = getBusBuffer(buffer, true, 0);
 
     if (!mConvolver.empty()) {
-        for (int c = 0; c < getTotalNumInputChannels(); c++) {
+        for (int c = 0; c < inputBuffer.getNumChannels(); c++) {
             mConvolver[c]->process(buffer.getReadPointer(c), mTempOutputBuffer.get(), buffer.getNumSamples());
             buffer.addFrom(c, 0, mTempOutputBuffer.get(), buffer.getNumSamples());
+        }
+        for (int c = getTotalNumInputChannels(); c < getTotalNumOutputChannels(); c++) {
+            buffer.copyFrom(c, 0, buffer.getReadPointer(0), buffer.getNumSamples());
         }
     }
 
@@ -173,23 +110,19 @@ void AudioPluginAudioProcessor::loadIr(juce::File irFile)
 {
     auto* reader = mFormatManager.createReaderFor(irFile);
     if (reader != nullptr) {
-        if (reader->numChannels != getTotalNumInputChannels()) {
-            delete reader;
-            onAudioProcessorError("Channel Mismatch");
+        suspendProcessing(true);
+        mIrBuffer.reset(new juce::AudioSampleBuffer(2, reader->lengthInSamples));
+        reader->read(mIrBuffer.get(), 0, reader->lengthInSamples, 0, true, true);
+        if (reader->numChannels < 2) {
+            mIrBuffer->copyFrom(1, 0, mIrBuffer->getReadPointer(0), mIrBuffer->getNumSamples());
         }
-        else {
-
-            suspendProcessing(true);
-            mIrBuffer.reset(new juce::AudioSampleBuffer(reader->numChannels, reader->lengthInSamples));
-            reader->read(mIrBuffer.get(), 0, reader->lengthInSamples, 0, true, true);
-            mConvolver.clear();
-            for (int c = 0; c < mIrBuffer->getNumChannels(); c++) {
-                mConvolver.emplace_back(new Convolver());
-                mConvolver[c]->init(mIrBuffer->getWritePointer(c), mIrBuffer->getNumSamples());
-            }
-            suspendProcessing(false);
-            delete reader;
+        mConvolver.clear();
+        for (int c = 0; c < mIrBuffer->getNumChannels(); c++) {
+            mConvolver.emplace_back(new Convolver());
+            mConvolver[c]->init(mIrBuffer->getWritePointer(c), mIrBuffer->getNumSamples());
         }
+        suspendProcessing(false);
+        delete reader;
     }
     else {
         onAudioProcessorError("File can't be opened");
