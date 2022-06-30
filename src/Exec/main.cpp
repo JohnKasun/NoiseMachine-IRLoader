@@ -91,9 +91,6 @@ int main(int argc, char* argv[])
 		}
 		irFileIn->getFileSpec(irFileSpec);
 		irFileIn->getLength(irLengthInSeconds);
-		if (irLengthInSeconds > 5.0f) {
-			throw Exception("IR file exceeds 5 seconds...");
-		}
 		if (irFileSpec.iNumChannels != 1 && irFileSpec.iNumChannels != 2) {
 			throw Exception("IR file must be mono or stereo...");
 		}
