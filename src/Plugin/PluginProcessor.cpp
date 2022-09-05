@@ -5,8 +5,7 @@
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     : AudioProcessor(BusesProperties()
         .withInput("Input", juce::AudioChannelSet::stereo(), true)
-        .withOutput("Output", juce::AudioChannelSet::stereo(), true)
-    )
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true))
 {
     mFormatManager.registerBasicFormats();
 }
@@ -78,7 +77,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     for (int c = getTotalNumInputChannels(); c < getTotalNumOutputChannels(); c++) {
         buffer.copyFrom(c, 0, buffer.getReadPointer(0), buffer.getNumSamples());
     }
-
 }
 //==============================================================================
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
@@ -88,7 +86,7 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 
 void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    
+
 }
 
 void AudioPluginAudioProcessor::loadIr(juce::File irFile)

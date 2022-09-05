@@ -7,7 +7,7 @@
 class Exception : public std::exception {
 public:
 	Exception(const char* message) : mMessage(message) {};
-	const char* what() const override{
+	const char* what() const noexcept override{
 		return mMessage;
 	}
 private:

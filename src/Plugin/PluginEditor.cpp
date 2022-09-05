@@ -5,7 +5,6 @@
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p)
 {
-    juce::ignoreUnused(processorRef);
 
     addAndMakeVisible(mLoadButton);
     mLoadButton.onClick = [this]() {
@@ -19,9 +18,18 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     mClearButton.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
     mClearButton.setButtonText("Clear");
     
+    addAndMakeVisible(mGainSlider);
+    mGainSlider.setName("Gain");
+    mGainSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    mGainSlider.setLookAndFeel(&mMyLookAndFeel);
+    mGainSlider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+    addAndMakeVisible(mGainLabel);
+    mGainLabel.attachToComponent(&mGainSlider, true);
+    mGainLabel.setText("Gain", juce::dontSendNotification);
+    
     startTimer(50);
     processorRef.setAudioProcessErrorCallback([this](juce::String message) { showErrorWindow(message); });
-    setSize(buttonWidth, buttonHeight * 1.5);
+    setSize(buttonWidth, buttonHeight * 1.5 + buttonHeight);
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
@@ -38,6 +46,11 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics& g)
 void AudioPluginAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
+    
+    auto gainArea = area.removeFromBottom(buttonHeight);
+    mGainLabel.setBounds(gainArea.removeFromLeft(buttonWidth / 8));
+    mGainSlider.setBounds(gainArea);
+    
     mLoadButton.setBounds(area.removeFromTop(buttonHeight));
     mClearButton.setBounds(area);
 }

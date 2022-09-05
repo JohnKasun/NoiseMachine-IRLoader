@@ -19,6 +19,8 @@ public:
     //==============================================================================
     void paint(juce::Graphics&) override;
     void resized() override;
+    
+    typedef juce::AudioProcessorValueTreeState::SliderAttachment SliderAttachment;
 
 private:
 
@@ -27,6 +29,9 @@ private:
 
     juce::TextButton mLoadButton;
     juce::TextButton mClearButton;
+    
+    juce::Label mGainLabel;
+    juce::Slider mGainSlider;
 
     std::unique_ptr<juce::FileChooser> mIrLoaderWindow;
     void timerCallback() override;
