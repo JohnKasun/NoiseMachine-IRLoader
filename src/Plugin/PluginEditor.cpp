@@ -2,8 +2,8 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
-    : AudioProcessorEditor(&p), processorRef(p)
+AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p, juce::AudioProcessorValueTreeState& vts)
+    : AudioProcessorEditor(&p), processorRef(p), mValueTreeState(vts)
 {
 
     addAndMakeVisible(mLoadButton);
@@ -19,6 +19,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     mClearButton.setButtonText("Clear");
     
     addAndMakeVisible(mGainSlider);
+    mGainSliderAttachment.reset(new SliderAttachment(mValueTreeState, "gain", mGainSlider));
     mGainSlider.setName("Gain");
     mGainSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     mGainSlider.setLookAndFeel(&mMyLookAndFeel);

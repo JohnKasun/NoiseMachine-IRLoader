@@ -13,7 +13,7 @@ public:
         buttonHeight = 75
     };
 
-    explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor&);
+    explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor&, juce::AudioProcessorValueTreeState&);
     ~AudioPluginAudioProcessorEditor() override;
 
     //==============================================================================
@@ -26,12 +26,14 @@ private:
 
     MyLookAndFeel mMyLookAndFeel;
     AudioPluginAudioProcessor& processorRef;
+    juce::AudioProcessorValueTreeState& mValueTreeState;
 
     juce::TextButton mLoadButton;
     juce::TextButton mClearButton;
     
     juce::Label mGainLabel;
     juce::Slider mGainSlider;
+    std::unique_ptr<SliderAttachment> mGainSliderAttachment;
 
     std::unique_ptr<juce::FileChooser> mIrLoaderWindow;
     void timerCallback() override;

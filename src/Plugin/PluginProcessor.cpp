@@ -5,9 +5,13 @@
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     : AudioProcessor(BusesProperties()
         .withInput("Input", juce::AudioChannelSet::stereo(), true)
-        .withOutput("Output", juce::AudioChannelSet::stereo(), true))
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+mParameters(*this, nullptr, juce::Identifier("Parameters"), {
+      std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 2.0f, 1.0f)
+  })
 {
     mFormatManager.registerBasicFormats();
+    mGainParam = mParameters.getRawParameterValue("gain");
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -16,18 +20,52 @@ AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 }
 
 //==============================================================================
-const juce::String AudioPluginAudioProcessor::getName() const { return JucePlugin_Name;}
-bool AudioPluginAudioProcessor::acceptsMidi() const{return false;}
-bool AudioPluginAudioProcessor::producesMidi() const{return false;}
-bool AudioPluginAudioProcessor::isMidiEffect() const { return false;}
-int AudioPluginAudioProcessor::getNumPrograms() { return 1; }
-int AudioPluginAudioProcessor::getCurrentProgram() { return 0; }
-void AudioPluginAudioProcessor::setCurrentProgram(int index) { juce::ignoreUnused(index); }
-const juce::String AudioPluginAudioProcessor::getProgramName(int index) { juce::ignoreUnused(index); return {}; }
-bool AudioPluginAudioProcessor::hasEditor() const { return true; }
-juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor() { return new AudioPluginAudioProcessorEditor(*this); }
-void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String& newName) { juce::ignoreUnused(index, newName); }
-//==============================================================================
+const juce::String AudioPluginAudioProcessor::getName() const
+{
+    return JucePlugin_Name;
+}
+
+bool AudioPluginAudioProcessor::acceptsMidi() const
+{
+    return false;
+}
+
+bool AudioPluginAudioProcessor::producesMidi() const
+{
+    return false;
+}
+
+bool AudioPluginAudioProcessor::isMidiEffect() const
+{
+    return false;
+}
+
+int AudioPluginAudioProcessor::getNumPrograms()
+{
+    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
+                // so this should be at least 1, even if you're not really implementing programs.
+}
+
+int AudioPluginAudioProcessor::getCurrentProgram()
+{
+    return 0;
+}
+
+void AudioPluginAudioProcessor::setCurrentProgram(int index)
+{
+    juce::ignoreUnused(index);
+}
+
+const juce::String AudioPluginAudioProcessor::getProgramName(int index)
+{
+    juce::ignoreUnused(index);
+    return {};
+}
+
+void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String& newName)
+{
+    juce::ignoreUnused(index, newName);
+}
 
 double AudioPluginAudioProcessor::getTailLengthSeconds() const
 {
@@ -77,18 +115,36 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     for (int c = getTotalNumInputChannels(); c < getTotalNumOutputChannels(); c++) {
         buffer.copyFrom(c, 0, buffer.getReadPointer(0), buffer.getNumSamples());
     }
+    buffer.applyGain(*mGainParam);
 }
+//==============================================================================
+bool AudioPluginAudioProcessor::hasEditor() const
+{
+    return true; // (change this to false if you choose to not supply an editor)
+}
+
+juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor()
+{
+    return new AudioPluginAudioProcessorEditor(*this, mParameters);
+}
+
 //==============================================================================
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-
+    auto state = mParameters.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    if (xmlState.get() != nullptr) {
+        if (xmlState->hasTagName(mParameters.state.getType())) {
+            mParameters.replaceState(juce::ValueTree::fromXml(*xmlState));
+        }
+    }
 }
-
 void AudioPluginAudioProcessor::loadIr(juce::File irFile)
 {
     auto* reader = mFormatManager.createReaderFor(irFile);

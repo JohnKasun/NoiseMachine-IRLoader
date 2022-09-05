@@ -63,7 +63,8 @@ private:
     std::unique_ptr<float> mTempOutputBuffer;
     int mTempOutputBufferSize = 0.0f;
 
-
+    juce::AudioProcessorValueTreeState mParameters;
+    std::atomic<float>* mGainParam = nullptr;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };
