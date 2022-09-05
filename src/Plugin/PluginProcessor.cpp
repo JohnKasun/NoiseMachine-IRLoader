@@ -96,28 +96,34 @@ void AudioPluginAudioProcessor::loadIr(juce::File irFile)
     auto* reader = mFormatManager.createReaderFor(irFile);
     if (reader != nullptr) {
         suspendProcessing(true);
-        auto irBuffer = juce::AudioSampleBuffer(reader->numChannels, reader->lengthInSamples);
-        reader->read(&irBuffer, 0, reader->lengthInSamples, 0, true, true);
-        switch (irBuffer.getNumChannels()) {
-        case 1:
-            mConvolver.at(0).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
-            mConvolver.at(1).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
-            mIrLoaded = true;
-            break;
-        case 2:
-            mConvolver.at(0).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
-            mConvolver.at(1).init(irBuffer.getWritePointer(1), irBuffer.getNumSamples());
-            mIrLoaded = true;
-            break;
-        default:
-            onAudioProcessorError("Ir must be stereo or mono...");
-            mIrLoaded = false;
+        auto lengthInSeconds = reader->lengthInSamples / reader->sampleRate;
+        if (lengthInSeconds > 5) {
+            onAudioProcessorError("IR must be under 5 seconds");
+        }
+        else {
+            auto irBuffer = juce::AudioSampleBuffer(reader->numChannels, reader->lengthInSamples);
+            reader->read(&irBuffer, 0, reader->lengthInSamples, 0, true, true);
+            switch (irBuffer.getNumChannels()) {
+            case 1:
+                mConvolver.at(0).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
+                mConvolver.at(1).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
+                mIrLoaded = true;
+                break;
+            case 2:
+                mConvolver.at(0).init(irBuffer.getWritePointer(0), irBuffer.getNumSamples());
+                mConvolver.at(1).init(irBuffer.getWritePointer(1), irBuffer.getNumSamples());
+                mIrLoaded = true;
+                break;
+            default:
+                onAudioProcessorError("IR must be stereo or mono...");
+                mIrLoaded = false;
+            }
         }
         suspendProcessing(false);
         delete reader;
     }
     else {
-        onAudioProcessorError("File can't be opened");
+        onAudioProcessorError("IR file can't be opened");
     }
 }
 
@@ -128,7 +134,9 @@ void AudioPluginAudioProcessor::clearIr()
         mConvolver.at(c).reset();
     }
     mIrLoaded = false;
-    CVectorFloat::setZero(mTempOutputBuffer.get(), mTempOutputBufferSize);
+    if (mTempOutputBuffer) {
+        CVectorFloat::setZero(mTempOutputBuffer.get(), mTempOutputBufferSize);
+    }
     suspendProcessing(false);
 }
 

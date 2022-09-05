@@ -74,13 +74,13 @@ void AudioPluginAudioProcessorEditor::clearIr()
 void AudioPluginAudioProcessorEditor::updateIrState()
 {
     if (processorRef.isIrLoaded()) {
-        mLoadButton.setButtonText("Ir Loaded!");
+        mLoadButton.setButtonText("IR Loaded!");
         mLoadButton.setColour(juce::TextButton::buttonColourId, juce::Colours::green);
         mLoadButton.setEnabled(false);
         mClearButton.setEnabled(true);
     }
     else {
-        mLoadButton.setButtonText("Load Ir");
+        mLoadButton.setButtonText("Load IR");
         mLoadButton.setColour(juce::TextButton::buttonColourId, getLookAndFeel().findColour(juce::TextButton::buttonColourId));
         mLoadButton.setEnabled(true);
         mClearButton.setEnabled(false);
