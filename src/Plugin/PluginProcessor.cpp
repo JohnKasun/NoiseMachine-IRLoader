@@ -7,7 +7,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         .withInput("Input", juce::AudioChannelSet::stereo(), true)
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
 mParameters(*this, nullptr, juce::Identifier("Parameters"), {
-      std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 2.0f, 1.0f)
+      std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 1.1f, 1.0f)
   })
 {
     mFormatManager.registerBasicFormats();
