@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
-Project(AudioEffect_IrLoader VERSION 1.0.2)
-set(CMAKE_CXX_STANDARD 17)
+Project(NoiseMachine-IRLoader VERSION 1.0.4)
+set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(JUCE)
 add_subdirectory(src bin)
